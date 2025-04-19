@@ -4,6 +4,8 @@ import joblib
 import plotly.express as px
 from pathlib import Path
 import matplotlib.image as mpimg
+import requests
+import os
 
 # Importar el adaptador de preprocess
 from preprocess_adapter import preprocess_single_record
@@ -11,6 +13,22 @@ from preprocess_adapter import preprocess_single_record
 # Configuración inicial
 st.set_page_config(page_title="Intelligent Credit Scoring Pipeline", layout="wide")
 BASE_DIR = Path(__file__).parent.parent
+MODEL_PATH = BASE_DIR / "models/model_1/rf_model.pkl"
+DATA_PATH = BASE_DIR / "data/raw/train.csv"
+INFORME_PATH = BASE_DIR / "informe/model_1/informe.html"
+
+# Descargar archivos grandes desde DagsHub
+def download_file(url, dest_path):
+    if not dest_path.exists():
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        response = requests.get(url)
+        with open(dest_path, 'wb') as f:
+            f.write(response.content)
+
+# Descarga archivos desde DagsHub
+download_file("https://dagshub.com/JorgeDataScientist/MLOps_CreditScore/raw/master/models/model_1/rf_model.pkl", MODEL_PATH)
+download_file("https://dagshub.com/JorgeDataScientist/MLOps_CreditScore/raw/master/data/raw/train.csv", DATA_PATH)
+download_file("https://dagshub.com/JorgeDataScientist/MLOps_CreditScore/src/master/informe/model_1/informe.html", INFORME_PATH)
 
 # Título y descripción
 st.title("Intelligent Credit Scoring Pipeline Dashboard 🎉")
@@ -62,14 +80,14 @@ with tab2:
         img_path = graphics_path / img_name
         if img_path.exists():
             img = mpimg.imread(img_path)
-            st.image(img, caption=img_name.replace(".png", "").replace("_", " ").title(), width=675)  # 10% menos tamaño
+            st.image(img, caption=img_name.replace(".png", "").replace("_", " ").title(), width=675)
         else:
             st.error(f"No se encontró {img_name} en graphics/model_1/")
 
 # Pestaña 3: Dataset
 with tab3:
     st.subheader("Exploración de train.csv")
-    data_path = BASE_DIR / "data/raw/train.csv"
+    data_path = DATA_PATH
     if data_path.exists():
         df = pd.read_csv(data_path)
         st.write("Dataset completo:")
@@ -80,18 +98,18 @@ with tab3:
 # Pestaña 4: Informe
 with tab4:
     st.subheader("Reporte de Análisis")
-    informe_path = BASE_DIR / "informe/model_1/informe.html"
+    informe_path = INFORME_PATH
     if informe_path.exists():
         with open(informe_path, "r", encoding="utf-8") as f:
             html_content = f.read()
-        st.components.v1.html(html_content, height=800, scrolling=True)  # Más largo
+        st.components.v1.html(html_content, height=800, scrolling=True)
     else:
         st.error("No se encontró informe.html en informe/model_1/")
 
 # Pestaña 5: Predicciones
 with tab5:
     st.subheader("Hacer Predicciones con Model_1")
-    model_path = BASE_DIR / "models/model_1/rf_model.pkl"
+    model_path = MODEL_PATH
     if not model_path.exists():
         st.error("No se encontró rf_model.pkl en models/model_1/")
         st.stop()
