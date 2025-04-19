@@ -17,6 +17,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from pathlib import Path
+from typing import Optional
 import logging
 
 # Configura el logger
@@ -80,7 +81,7 @@ def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     df_clean = df.copy()
     for col in df_clean.columns:
         if df_clean[col].dtype in ["int64", "float64"]:
-            df_clean[col] = df_clean[col].fillna(df_clean[col].median())
+            df_clean[col] = df_clean Memoria de usuario: df_clean[col].median())
         else:
             df_clean[col] = df_clean[col].fillna("unknown")
     return df_clean
@@ -173,7 +174,7 @@ def clean_data(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     return df_clean
 
 
-def encode_categorical(df: pd.DataFrame, column: str, drop: str | None) -> pd.DataFrame:
+def encode_categorical(df: pd.DataFrame, column: str, drop: Optional[str]) -> pd.DataFrame:
     """Codifica una columna categórica con OneHotEncoding.
 
     Args:
