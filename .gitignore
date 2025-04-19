@@ -1,0 +1,4 @@
+models/model_1/rf_model.pkl
+data/raw/train.csv
+__pycache__/
+*.pyc
