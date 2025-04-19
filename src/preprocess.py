@@ -81,7 +81,7 @@ def handle_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     df_clean = df.copy()
     for col in df_clean.columns:
         if df_clean[col].dtype in ["int64", "float64"]:
-            df_clean[col] = df_clean Memoria de usuario: df_clean[col].median())
+            df_clean[col] = df_clean[col].fillna(df_clean[col].median())
         else:
             df_clean[col] = df_clean[col].fillna("unknown")
     return df_clean
