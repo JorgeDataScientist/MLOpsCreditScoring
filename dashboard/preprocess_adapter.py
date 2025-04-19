@@ -2,9 +2,13 @@ import pandas as pd
 from pathlib import Path
 import sys
 import numpy as np
+import os
 
 # Agregar src al path para importar funciones de preprocess.py
 sys.path.append("/app/src")
+print("sys.path:", sys.path)
+print("Existe preprocess.py:", os.path.exists("/app/src/preprocess.py"))
+
 from preprocess import clean_data, transform_data, create_new_features, rename_columns, strip_strings, handle_missing_values, filter_minimum_values, filter_by_age, filter_by_age_credit_ratio, drop_columns, apply_encoding_rules, select_final_columns
 
 # Clase auxiliar para simular objetos de Hydra
