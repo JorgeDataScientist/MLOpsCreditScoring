@@ -8,15 +8,12 @@ Dependencias:
     - pandas: Para manipulación de datos.
     - numpy: Para cálculos numéricos.
     - sklearn: Para codificación y división de datos.
-    - hydra: Para gestionar configuraciones.
     - pathlib: Para manejo de rutas portables.
     - logging: Para registro de eventos.
 """
 
 import pandas as pd
 import numpy as np
-from hydra.utils import get_original_cwd
-from omegaconf import DictConfig
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from pathlib import Path
@@ -26,17 +23,19 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Base directory relativa
+BASE_DIR = Path(__file__).parent.parent
 
 def get_data(raw_path: str) -> pd.DataFrame:
     """Carga datos crudos desde un archivo CSV.
 
     Args:
-        raw_path: Ruta al archivo CSV crudo.
+        raw_path: Ruta al archivo CSV crudo (relativa a BASE_DIR).
 
     Returns:
         DataFrame con los datos cargados.
     """
-    abs_path = str(Path(get_original_cwd()) / raw_path)
+    abs_path = BASE_DIR / raw_path
     logger.info(f"Cargando datos desde {abs_path}")
     return pd.read_csv(abs_path)
 
@@ -152,7 +151,7 @@ def drop_columns(df: pd.DataFrame, columns_to_drop: list) -> pd.DataFrame:
     return df.drop(columns=[col for col in columns_to_drop if col in df.columns])
 
 
-def clean_data(df: pd.DataFrame, config: DictConfig) -> pd.DataFrame:
+def clean_data(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     """Aplica limpiezas al dataset en pasos modulares.
 
     Args:
@@ -164,13 +163,13 @@ def clean_data(df: pd.DataFrame, config: DictConfig) -> pd.DataFrame:
     """
     logger.info("Iniciando limpieza de datos")
     df_clean = df.copy()
-    df_clean = rename_columns(df_clean, config.process.translations)
+    df_clean = rename_columns(df_clean, config["process"]["translations"])
     df_clean = strip_strings(df_clean)
     df_clean = handle_missing_values(df_clean)
     df_clean = filter_minimum_values(df_clean)
-    df_clean = filter_by_age(df_clean, config.process.cleaning.min_age)
-    df_clean = filter_by_age_credit_ratio(df_clean, config.process.cleaning.max_age_credit_ratio)
-    df_clean = drop_columns(df_clean, config.process.cleaning.drop_columns)
+    df_clean = filter_by_age(df_clean, config["process"]["cleaning"]["min_age"])
+    df_clean = filter_by_age_credit_ratio(df_clean, config["process"]["cleaning"]["max_age_credit_ratio"])
+    df_clean = drop_columns(df_clean, config["process"]["cleaning"]["drop_columns"])
     return df_clean
 
 
@@ -249,7 +248,7 @@ def select_final_columns(df: pd.DataFrame, target: str) -> pd.DataFrame:
     return df[final_cols]
 
 
-def transform_data(df: pd.DataFrame, config: DictConfig) -> pd.DataFrame:
+def transform_data(df: pd.DataFrame, config: dict) -> pd.DataFrame:
     """Transforma datos aplicando codificación y selección de columnas.
 
     Args:
@@ -261,7 +260,7 @@ def transform_data(df: pd.DataFrame, config: DictConfig) -> pd.DataFrame:
     """
     logger.info("Iniciando transformación de datos")
     df_transformed = df.copy()
-    df_transformed = apply_encoding_rules(df_transformed, config.process.encoding)
+    df_transformed = apply_encoding_rules(df_transformed, config["process"]["encoding"])
     df_transformed = select_final_columns(df_transformed, "Puntaje_Credito")
     return df_transformed
 
@@ -312,7 +311,7 @@ def create_new_features(df: pd.DataFrame, new_features: list) -> pd.DataFrame:
     return df_new
 
 
-def process_data(config: DictConfig) -> tuple:
+def process_data(config: dict) -> tuple:
     """Procesa datos crudos y genera conjuntos de entrenamiento/prueba.
 
     Args:
@@ -325,35 +324,24 @@ def process_data(config: DictConfig) -> tuple:
         FileNotFoundError: Si el archivo crudo no existe.
     """
     logger.info("Iniciando procesamiento de datos")
-    data = get_data(config.raw.path)
+    data = get_data(config["raw"]["path"])
     data = clean_data(data, config)
     data = transform_data(data, config)
-    data = create_new_features(data, config.process.new_features)
-    feature_cols = [col for col in data.columns if col != config.process.target]
+    data = create_new_features(data, config["process"]["new_features"])
+    feature_cols = [col for col in data.columns if col != config["process"]["target"]]
     X = data[feature_cols]
-    y = data[[config.process.target]]
+    y = data[[config["process"]["target"]]]
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
-        test_size=config.process.test_size,
-        random_state=config.process.random_state,
+        test_size=config["process"]["test_size"],
+        random_state=config["process"]["random_state"],
     )
-    output_dir = Path(get_original_cwd()) / config.processed.dir
+    output_dir = BASE_DIR / config["processed"]["dir"]
     output_dir.mkdir(parents=True, exist_ok=True)
-    X_train.to_csv(output_dir / config.processed.X_train.name, index=False)
-    X_test.to_csv(output_dir / config.processed.X_test.name, index=False)
-    y_train.to_csv(output_dir / config.processed.y_train.name, index=False)
-    y_test.to_csv(output_dir / config.processed.y_test.name, index=False)
+    X_train.to_csv(output_dir / config["processed"]["X_train"]["name"], index=False)
+    X_test.to_csv(output_dir / config["processed"]["X_test"]["name"], index=False)
+    y_train.to_csv(output_dir / config["processed"]["y_train"]["name"], index=False)
+    y_test.to_csv(output_dir / config["processed"]["y_test"]["name"], index=False)
     logger.info(f"Datos guardados en {output_dir}")
     return X_train, X_test, y_train, y_test
-
-
-if __name__ == "__main__":
-    """Punto de entrada para ejecutar el procesamiento directamente."""
-    import hydra
-
-    @hydra.main(version_base=None, config_path="../config", config_name="main")
-    def main(config: DictConfig):
-        process_data(config)
-
-    main()
